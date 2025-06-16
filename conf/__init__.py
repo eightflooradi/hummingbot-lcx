@@ -94,6 +94,10 @@ gate_io_secret_key = os.getenv("GATE_IO_SECRET_KEY")
 mexc_api_key = os.getenv("MEXC_API_KEY")
 mexc_api_secret = os.getenv("MEXC_API_SECRET")
 
+# LCX Tests
+lcx_api_key = os.getenv("LCX_API_KEY")
+lcx_secret_key = os.getenv("LCX_SECRET_KEY")
+
 # Wallet Tests
 test_erc20_token_address = os.getenv("TEST_ERC20_TOKEN_ADDRESS")
 web3_test_private_key_a = os.getenv("TEST_WALLET_PRIVATE_KEY_A")
