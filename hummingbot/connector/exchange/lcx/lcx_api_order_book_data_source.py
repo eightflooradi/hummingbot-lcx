@@ -12,7 +12,9 @@ if TYPE_CHECKING:
 
 
 class LCXAPIOrderBookDataSource(OrderBookTrackerDataSource):
-    def __init__(self, trading_pairs: List[str], connector: 'LCXExchange', api_factory: WebAssistantsFactory):
+    """Order book tracker that uses LCX public REST and WebSocket APIs."""
+
+    def __init__(self, trading_pairs: List[str], connector: "LCXExchange", api_factory: WebAssistantsFactory):
         super().__init__(trading_pairs)
         self._connector = connector
         self._api_factory = api_factory
@@ -53,7 +55,9 @@ class LCXAPIOrderBookDataSource(OrderBookTrackerDataSource):
                         "bids": [[price, amount]] if side == "BUY" else [],
                         "asks": [[price, amount]] if side == "SELL" else [],
                     }
-                    diff_msg = OrderBookMessage(OrderBookMessageType.DIFF, message_data, timestamp=self._connector.current_timestamp)
+                    diff_msg = OrderBookMessage(
+                        OrderBookMessageType.DIFF, message_data, timestamp=self._connector.current_timestamp
+                    )
                     output.put_nowait(diff_msg)
             except asyncio.CancelledError:
                 raise

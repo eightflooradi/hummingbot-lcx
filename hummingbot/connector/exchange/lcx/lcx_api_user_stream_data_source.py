@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 
 
 class LCXAPIUserStreamDataSource(UserStreamTrackerDataSource):
-    def __init__(self, auth: LCXAuth, trading_pairs: List[str], connector: 'LCXExchange', api_factory: WebAssistantsFactory):
+    def __init__(
+        self, auth: LCXAuth, trading_pairs: List[str], connector: "LCXExchange", api_factory: WebAssistantsFactory
+    ):
         super().__init__()
         self._auth = auth
         self._trading_pairs = trading_pairs
@@ -39,3 +41,7 @@ class LCXAPIUserStreamDataSource(UserStreamTrackerDataSource):
         ]
         for payload in payloads:
             await websocket_assistant.send(WSJSONRequest(payload=payload))
+
+    async def _process_event_message(self, event_message: dict, queue: asyncio.Queue):
+        if len(event_message) > 0:
+            queue.put_nowait(event_message)

@@ -12,6 +12,8 @@ from hummingbot.core.web_assistant.connections.data_types import RESTRequest, WS
 
 
 class LCXAuth(AuthBase):
+    """Authenticates REST and WebSocket requests to the LCX exchange."""
+
     def __init__(self, api_key: str, secret_key: str, time_provider: TimeSynchronizer):
         self._api_key = api_key
         self._secret_key = secret_key
@@ -35,12 +37,14 @@ class LCXAuth(AuthBase):
         sign_bytes = hmac.new(self._secret_key.encode(), request_string.encode(), hashlib.sha256).digest()
         signature = base64.b64encode(sign_bytes).decode()
         headers = request.headers or {}
-        headers.update({
-            "x-access-key": self._api_key,
-            "x-access-sign": signature,
-            "x-access-timestamp": ts,
-            "API-VERSION": CONSTANTS.API_VERSION,
-        })
+        headers.update(
+            {
+                "x-access-key": self._api_key,
+                "x-access-sign": signature,
+                "x-access-timestamp": ts,
+                "API-VERSION": CONSTANTS.API_VERSION,
+            }
+        )
         request.headers = headers
         return request
 

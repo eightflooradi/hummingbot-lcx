@@ -23,9 +23,18 @@ if TYPE_CHECKING:
 
 
 class LCXExchange(ExchangePyBase):
+    """Connector for trading on the LCX centralized exchange."""
+
     web_utils = web_utils
 
-    def __init__(self, client_config_map: "ClientConfigAdapter", lcx_api_key: str, lcx_secret_key: str, trading_pairs: Optional[List[str]] = None, trading_required: bool = True):
+    def __init__(
+        self,
+        client_config_map: "ClientConfigAdapter",
+        lcx_api_key: str,
+        lcx_secret_key: str,
+        trading_pairs: Optional[List[str]] = None,
+        trading_required: bool = True,
+    ):
         self._api_key = lcx_api_key
         self._secret_key = lcx_secret_key
         self._trading_pairs = trading_pairs
@@ -83,7 +92,16 @@ class LCXExchange(ExchangePyBase):
     def supported_order_types(self) -> List[OrderType]:
         return [OrderType.LIMIT, OrderType.MARKET]
 
-    async def _place_order(self, order_id: str, trading_pair: str, amount: Decimal, trade_type: TradeType, order_type: OrderType, price: Decimal, **kwargs) -> Tuple[str, float]:
+    async def _place_order(
+        self,
+        order_id: str,
+        trading_pair: str,
+        amount: Decimal,
+        trade_type: TradeType,
+        order_type: OrderType,
+        price: Decimal,
+        **kwargs
+    ) -> Tuple[str, float]:
         symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
         side = "BUY" if trade_type is TradeType.BUY else "SELL"
         data: Dict[str, Any] = {
@@ -118,14 +136,29 @@ class LCXExchange(ExchangePyBase):
         return True
 
     def _create_web_assistants_factory(self) -> WebAssistantsFactory:
-        return web_utils.build_api_factory(throttler=self._throttler, time_synchronizer=self._time_synchronizer, auth=self._auth)
+        return web_utils.build_api_factory(
+            throttler=self._throttler, time_synchronizer=self._time_synchronizer, auth=self._auth
+        )
 
     def _create_order_book_data_source(self) -> OrderBookTrackerDataSource:
-        return LCXAPIOrderBookDataSource(trading_pairs=self._trading_pairs, connector=self, api_factory=self._web_assistants_factory)
+        return LCXAPIOrderBookDataSource(
+            trading_pairs=self._trading_pairs, connector=self, api_factory=self._web_assistants_factory
+        )
 
     def _create_user_stream_data_source(self) -> UserStreamTrackerDataSource:
-        return LCXAPIUserStreamDataSource(auth=self._auth, trading_pairs=self._trading_pairs, connector=self, api_factory=self._web_assistants_factory)
+        return LCXAPIUserStreamDataSource(
+            auth=self._auth, trading_pairs=self._trading_pairs, connector=self, api_factory=self._web_assistants_factory
+        )
 
-    def _get_fee(self, base_currency: str, quote_currency: str, order_type: OrderType, order_side: TradeType, amount: Decimal, price: Decimal = s_decimal_NaN, is_maker: Optional[bool] = None) -> AddedToCostTradeFee:
+    def _get_fee(
+        self,
+        base_currency: str,
+        quote_currency: str,
+        order_type: OrderType,
+        order_side: TradeType,
+        amount: Decimal,
+        price: Decimal = s_decimal_NaN,
+        is_maker: Optional[bool] = None,
+    ) -> AddedToCostTradeFee:
         is_maker = order_type is OrderType.LIMIT_MAKER
         return AddedToCostTradeFee(percent=self.estimate_fee_pct(is_maker))
