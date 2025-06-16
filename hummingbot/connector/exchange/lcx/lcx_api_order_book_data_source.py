@@ -30,10 +30,51 @@ class LCXAPIOrderBookDataSource(OrderBookTrackerDataSource):
         return result
 
     async def listen_for_order_book_diffs(self, ev_loop: asyncio.AbstractEventLoop, output: asyncio.Queue):
-        raise NotImplementedError
+        ws = None
+        while True:
+            try:
+                ws = await self._api_factory.get_ws_assistant()
+                await ws.connect(ws_url=CONSTANTS.WSS_PUBLIC_URL, ping_timeout=CONSTANTS.PING_TIMEOUT)
+                for trading_pair in self._trading_pairs:
+                    symbol = await self._connector.exchange_symbol_associated_to_pair(trading_pair)
+                    payload = {"Topic": "subscribe", "Type": "orderbook", "Pair": symbol}
+                    await ws.send_json(payload)
+
+                async for ws_message in ws.iter_messages():
+                    data = ws_message.data
+                    if data.get("type") != "orderbook" or data.get("topic") != "update":
+                        continue
+                    pair_symbol = data.get("pair")
+                    trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(pair_symbol)
+                    price, amount, side = data.get("data", [None, None, None])
+                    message_data = {
+                        "trading_pair": trading_pair,
+                        "update_id": int(self._connector.current_timestamp * 1e3),
+                        "bids": [[price, amount]] if side == "BUY" else [],
+                        "asks": [[price, amount]] if side == "SELL" else [],
+                    }
+                    diff_msg = OrderBookMessage(OrderBookMessageType.DIFF, message_data, timestamp=self._connector.current_timestamp)
+                    output.put_nowait(diff_msg)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger().error("Unexpected error in order book diff stream.", exc_info=True)
+                await self._sleep(5.0)
+            finally:
+                ws and await ws.disconnect()
 
     async def listen_for_order_book_snapshots(self, ev_loop: asyncio.AbstractEventLoop, output: asyncio.Queue):
-        raise NotImplementedError
+        while True:
+            try:
+                for trading_pair in self._trading_pairs:
+                    snapshot = await self._order_book_snapshot(trading_pair)
+                    output.put_nowait(snapshot)
+                await self._sleep(3600.0)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger().error("Error fetching order book snapshots.", exc_info=True)
+                await self._sleep(5.0)
 
     async def _order_book_snapshot(self, trading_pair: str) -> OrderBookMessage:
         rest_assistant = await self._api_factory.get_rest_assistant()
